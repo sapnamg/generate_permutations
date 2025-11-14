@@ -1,0 +1,143 @@
+
+#----------------------------------------------------------Function to Check validity of diagonal placement--------------------------------------------------------#
+def check_if_diag_allowed(board, n, row, column, entry):
+    #note: if current space is 0 = empty, it is always allowed, so only check values 1 and 2 (\, /)
+    
+    if entry == 0:
+        return True
+    
+    upper_left = (row-1)*n + (column-1)
+    above = (row-1)*n + column
+    upper_right = (row-1)*n + (column+1)
+    left = row*n + (column-1)
+    
+    if row == 0:
+        if column == 0:
+                #if first entry in board, nothing to check prior to it
+                return True
+        elif column > 0:
+                #if in first row, only need to check to the left of space, nothing above (and below and right not filled yet)
+                if entry == 1:
+                    if board[left] == 2:
+                        return False
+
+                if entry == 2:
+                    if board[left] == 1:
+                        return False
+              
+    elif row > 0:
+        if column == 0:
+            if entry == 1:
+                if board[above] == 2:
+                    return False
+            elif entry == 2:
+                if board[above] == 1 or board[upper_right] == 2:
+                     return False
+        elif column > 0 and column < n-1:
+            if entry == 1:
+                if board[upper_left] == 1 or board[above] == 2 or board[left] == 2:
+                    return False
+            elif entry == 2:
+                if board[above] == 1 or board[upper_right] == 2 or board[left] == 1:
+                    return False
+        elif column == n-1:
+            if entry == 1:
+                if board[upper_left] == 1 or board[above] == 2 or board[left] == 2:
+                    return False
+            elif entry == 2:
+                if board[above] == 1 or board[left] == 1:
+                    return False
+
+    return True
+
+
+
+#-----------------------------------------------------------Function to Extend Board--------------------------------------------------------------------------------#
+def extend(n, diagonals, board = None, index=0, bad_path_cache = None):
+    #-----------------------------------------------------Initialize Board if not done-------------------------------------------------#
+    if board is None:
+        board = [0] * (n*n)
+
+    #-----------------------------------------------------Check if have a solution-----------------------------------------------------#
+    solutions = []
+    
+    #Count how many diagonals are placed so far
+    diag_count = board.count(1) + board.count(2)
+                
+    if diag_count == diagonals:
+        #return a deep copy of board array
+        return [board[:]],[]
+        #backtrack to continue to search for other solutions
+        
+    #------------------------------------Checking if current path is already known to be impossible------------------------------------#
+    #check if bad_path_cache is initialized yet or not    
+    if bad_path_cache is None:
+        bad_path_cache = set()
+    
+    #create a set for current perm that can be checked against or added to bad_patch_cache if it is found to be impossible path
+    board_key = tuple(board[:index])
+    
+    #check current perm against known set of bad paths:
+    if board_key in bad_path_cache:
+        return [], [board_key]
+        #backtrack to find other solutions, return empty list for solutions, and board_key to be added to bad_path_cache one level up    
+    
+    #-------------------------------------Checking if not enough spaces for remaining diagonals----------------------------------------#
+    remaining_spaces = n*n-index
+
+    #If more diagonals than spaces left, consider this path impossible, and add to bad_path_cache (already have current perm's board_key saved above)
+    if diagonals-diag_count > remaining_spaces:
+        bad_path_cache.add(board_key)
+        return [],[board_key]
+        #backtrack to find other solutions, return empty list for solutions, and board_key to be added to bad_path_cache one level up  
+
+
+
+    #------------------------------------------------Extending board fill-in----------------------------------------------------------#
+    #-----------------------------------Attempt adding entry to current indexed space------------------------------#        
+    x = [1,2,0] #current space can be selected from this set of 0 = empty, 1 = \, 2 = /
+    #given then index is row*n+column, row and column can be calculated as below
+    row = index // n
+    column = index % n
+    
+    for i in x:
+        entry = i
+        if check_if_diag_allowed(board, n, row, column, entry):
+            board[index] = entry
+            
+            #enter recursive call, increase index by 1, and save value returned from it to a variable
+            answer,bad_path = extend(n, diagonals, board, index+1, bad_path_cache)
+            
+            #--------------------------------------Save returned list to set of solutions or cache as bad path---------------------------------#
+            #extend solutions list with answer (iteratble list of rows) from previously exited recursive call (empty list returns won't be added as they are empty)
+            solutions.extend(answer)
+            bad_path_cache.update(bad_path)
+            #-------------------------------------------------coming out of extend function----------------------------------------------------#
+            
+            #if coming out of extend function or don't pass check function, you either didn't find solution or are looking for another, so remove last entry
+            board[index] = 0
+    
+    return solutions,bad_path_cache
+
+#------------------------------------------------------------------Map Numbers to Diagonals--------------------------------------------------------------------------#
+def print_diags(entry):
+    match entry:
+        case 2:
+            return "/"
+        case 1:
+            return '\\'
+        case 0:
+            return " "
+
+#------------------------------------------------------------------Main Function to Print All Solutions---------------------------------------------------------------#
+def count_diagonal_solutions(n, diagonals):
+    solutions,bad_path_cache = extend(n, diagonals)
+    print("List of all solutions found: ")
+    for board in solutions:
+        print("\n")
+        for i in range(n):
+            row = board[i*n:(i+1)*n]
+            new_row = list(map(print_diags,row))
+            print(" ".join(new_row))
+    
+count_diagonal_solutions(5,16)
