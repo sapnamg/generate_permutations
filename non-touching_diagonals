@@ -1,0 +1,118 @@
+def check_if_diag_allowed(perm, n, row, column, entry, x, indent):
+    print(f"{indent}Checking entry {entry} in row {row} column {column}")
+    #note: if current space is 0 = empty, it is always allowed, so only check values 1 and 2 (\, /)
+    if row == 0:
+        if column == 0:
+                #if first entry in board, nothing to check prior to it
+                return True
+        elif column > 0 and column <n:
+                #if in first row, only need to check to the left of space, nothing above (and below and right not filled yet)
+                if perm[row][column-1] == 1:
+                    #if previous column is 1 = \, current can only be 1 = \ or 0 = empty
+                    if entry == 2:
+                        return False
+                if perm [row][column-1] == 2:
+                    if entry == 1:
+                        return False
+              
+    elif row > 0:
+        if column == 0:
+            if entry == 1:
+                if perm[row-1][column] == 2:
+                    return False
+            elif entry == 2:
+                if perm[row-1][column] == 1 or perm[row-1][column+1] == 2:
+                     return False
+        elif column > 0 and column < n-1:
+            if entry == 1:
+                if perm[row-1][column-1] == 1 or perm[row-1][column] == 2 or perm[row][column-1] == 2:
+                    return False
+            elif entry == 2:
+                if perm[row-1][column+1] == 2 or perm[row-1][column] == 1 or perm[row][column-1] == 1:
+                    return False
+        elif column == n-1:
+            if entry == 1:
+                if perm[row-1][column-1] == 1 or perm[row-1][column] == 2 or perm[row][column-1] == 2:
+                    return False
+            elif entry == 2:
+                if perm[row-1][column] == 1 or perm[row][column-1] == 1:
+                    return False
+    print(f"{indent}Checks out, adding {entry}")
+    return True
+
+
+def extend(perm, n, diagonals, row, column, depth=0):
+    #-----------------------------------------------------------Formatting-------------------------------------------------------------#
+    indent = "  " * depth
+    print(f"{indent}Entering Depth {depth}")
+
+    #------------------------------------------------Checking for final solution-------------------------------------------------------#
+    solutions = []    
+
+    diag_count = 0
+    for _row in perm:
+        for _column in _row:
+            if _column in [1,2]:
+                diag_count+=1
+    if diag_count == diagonals:
+        print("A solution is: ", perm)
+        #return a deep copy of list rows in perm inside a list
+        return [[row[:] for row in perm]]
+        #backtrack to continue to search for other solutions
+    
+    #if reached final row,
+    elif len(perm) == n:
+        #and if reached final column in final row,
+        if len(perm[n-1]) == n:
+            print("No solution found on this track")
+            return []
+        
+    #------------------------------------------------Extending board fill-in----------------------------------------------------------#
+    #----------------------------------------Check if current indexed row exists-----------------------------------#
+    if row > len(perm)-1:
+        #if no existing row for current index, append empty list to represent that row
+        perm.append([])
+    
+    #-----------------------------------Attempt adding entry to current indexed space------------------------------#        
+    x = [2,1,0] #current space can be selected from this set of 0 = empty, 1 = \, 2 = /
+
+    for i in x:
+        entry = i
+        if check_if_diag_allowed(perm, n, row, column, entry, x, indent):
+            perm[row].append(entry)
+            
+            #------------------------------------------------Advanced to next space-----------------------------------------------------------#
+            if column < n-1:
+                nextrow = row
+                nextcolumn = column + 1
+                print(f"{indent}Advancing to row {nextrow} column {nextcolumn}")
+            else:
+                nextrow = row + 1
+                nextcolumn = 0
+                if nextrow == n:
+                    print(f"{indent} Checking solution")
+                else:
+                    print(f"{indent}Advancing to row {nextrow} column {nextcolumn}")
+            
+            #enter recursive call, and save value returned from it to a variable
+            answer = extend(perm, n, diagonals, nextrow, nextcolumn, depth+1)
+            
+            #------------------------------------------------Save returned list to set of solutions-------------------------------------------#
+            #extend solutions list with answer (iteratble list of rows) from previously exited recursive call (empty list returns won't be added as they are empty)
+            solutions.extend(answer)
+            
+            #------------------------------------------------coming out of extend function----------------------------------------------------#
+            
+            #if coming out of extend function or don't pass check function, you either didn't find solution or are looking for another, so remove the last entry
+            perm[row].pop()
+            print(f"{indent}Popped off last entry. Backtracking now. Exiting depth {depth}")
+    
+    return solutions
+
+def count_diagonal_solutions(n, diagonals):
+    solutions = extend([], n, diagonals, 0, 0)
+    print("List of all solutions found: ")
+    for board in solutions:
+        print(board)
+    
+count_diagonal_solutions(3,6)
